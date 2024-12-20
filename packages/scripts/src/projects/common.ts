@@ -118,12 +118,33 @@ export const CommonProject = Project.create({
 				},
 				enableQuestionCaches: {
 					label: '题库缓存功能',
-					defaultValue: true,
+					defaultValue: false,
 					attrs: { type: 'checkbox', title: '详情请前往 通用-其他应用-题库拓展查看。' }
 				},
 				answererWrappers: {
 					separator: '自动答题设置',
-					defaultValue: [] as AnswererWrapper[]
+					defaultValue: [
+						{
+							name: '自定义题库',
+							url: 'http://localhost:8060/adapter-service/search',
+							method: 'post',
+							type: 'GM_xmlhttpRequest',
+							contentType: 'json',
+							headers: {},
+							data: {
+								// eslint-disable-next-line no-template-curly-in-string
+								question: '${title}',
+								options: {
+									handler: "return (env)=>env.options?.split('\\n')"
+								},
+								type: {
+									handler:
+										" return (env)=> env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 2 : env.type === 'judgement' ? 3 : undefined"
+								}
+							},
+							handler: "return (res)=>res.answer.allAnswer.map(i=>([res.question,i.join('#')]))"
+						}
+					] as AnswererWrapper[]
 				},
 				/**
 				 * 禁用的题库
@@ -243,30 +264,37 @@ export const CommonProject = Project.create({
 													const value = textarea.value;
 
 													if (value) {
-														if (
-															value.includes('adapter-service/search') &&
-															(select.value === 'TikuAdapter') === false
-														) {
-															$modal.alert({
-																content: h('div', [
-																	'检测到您可能正在使用 ',
-																	h(
-																		'a',
-																		{ href: 'https://github.com/DokiDoki1103/tikuAdapter#readme' },
-																		'TikuAdapter 题库'
-																	),
-																	'，但是您选择的解析器不是 TikuAdapter，请选择 TikuAdapter 解析器，并填写接口地址即可，例如：http://localhost:8060/adapter-service/search，或者忽略此警告。'
-																]),
-																confirmButtonText: '切换至 TikuAdapter 解析器，并识别接口地址',
-																onConfirm() {
-																	const origin =
-																		textarea.value.match(/http:\/\/(.+)\/adapter-service\/search/)?.[1] || '';
-																	textarea.value = `http://${origin}/adapter-service/search`;
-																	select.value = 'TikuAdapter';
-																}
-															});
-															return;
-														}
+														// if (
+														// 	value.includes('adapter-service/search') &&
+														// 	(select.value === 'TikuAdapter') === false
+														// ) {
+														// 	$modal.alert({
+														// 		content: h('div', [
+														// 			'检测到您可能正在使用 ',
+														// 			h(
+														// 				'a',
+														// 				{ href: 'https://github.com/DokiDoki1103/tikuAdapter#readme' },
+														// 				'TikuAdapter 题库'
+														// 			),
+														// 			'，但是您选择的解析器不是 TikuAdapter，请选择 TikuAdapter 解析器，并填写接口地址即可，例如：http://localhost:8060/adapter-service/search，或者忽略此警告。'
+														// 		]),
+														// 		confirmButtonText: '切换至 TikuAdapter 解析器，并识别接口地址',
+														// 		cancelButtonText: '取消', // 添加取消按钮的文本
+														// 		showCancelButton: true, // 启用取消按钮
+														// 		onConfirm() {
+														// 			const origin =
+														// 				textarea.value.match(/http:\/\/(.+)\/adapter-service\/search/)?.[1] || '';
+														// 			textarea.value = `http://${origin}/adapter-service/search`;
+														// 			select.value = 'TikuAdapter';
+														// 		},
+														// 		onCancel() {
+														// 			// 这里是取消按钮被点击时的处理逻辑
+														// 			console.log('用户取消了操作');
+														// 			// 您可以在这里添加任何您希望在用户取消操作时执行的代码
+														// 		}
+														// 	});
+														// 	return;
+														// }
 
 														try {
 															const awsResult: AnswererWrapper[] = [];
@@ -301,7 +329,7 @@ export const CommonProject = Project.create({
 																		},
 																		type: {
 																			handler:
-																				" return (env)=> env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 3 : env.type === 'judgement' ? 4 : undefined"
+																				" return (env)=> env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 2 : env.type === 'judgement' ? 3 : undefined"
 																		}
 																	},
 																	handler: "return (res)=>res.answer.allAnswer.map(i=>([res.question,i.join('#')]))"
@@ -415,7 +443,7 @@ export const CommonProject = Project.create({
 				upload: {
 					label: '答题完成后',
 					tag: 'select',
-					defaultValue: 80 as WorkUploadType,
+					defaultValue: 100 as WorkUploadType,
 					options: [
 						['save', '自动保存', '完成后自动保存答案, 注意如果你开启了随机作答, 有可能分辨不出答案是否正确。'],
 						['nomove', '不保存也不提交', '等待时间过后将会自动下一节, 适合在测试脚本时使用。'],
@@ -503,7 +531,7 @@ export const CommonProject = Project.create({
 					attrs: {
 						title: "分隔答案的符号，例如：答案1#答案2#答案3，分隔符为 #， 使用英文逗号进行隔开 : ',' "
 					},
-					defaultValue: ['===', '#', '---', '###', '|', ';', '；'].join(','),
+					defaultValue: ['===', '#', '---', '###', '|'].join(','),
 					onload(el) {
 						el.addEventListener('change', () => {
 							if (String(el.value).trim() === '') {

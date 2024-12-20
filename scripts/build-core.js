@@ -12,7 +12,7 @@ const fs = require('fs');
 
 dotenv.config();
 
-const distPath = process.env.BUILD_PATH || '../dist';
+const distPath = process.env.BUILD_PATH || '../packages/scripts/dist';
 console.log('BUILD_PATH: ', distPath);
 const distResolvedPath = path.resolve(__dirname, distPath);
 
@@ -20,15 +20,16 @@ function cleanOutput() {
 	return del([distPath, '../lib'], { force: true });
 }
 
+
 async function buildPackages() {
 	// @ts-ignore
-	await execOut('tsc', { cwd: '../packages/core' });
+	await execOut('tsc --build', { cwd: '../packages/core' });
 	// @ts-ignore
-	await execOut('vite build', { cwd: '../packages/core' });
+	await execOut('pnpx vite build', { cwd: '../packages/core' });
 	// @ts-ignore
-	await execOut('tsc', { cwd: '../packages/scripts' });
+	await execOut('tsc --build', { cwd: '../packages/scripts' });
 	// @ts-ignore
-	await execOut('vite build', { cwd: '../packages/scripts' });
+	await execOut('pnpx vite build', { cwd: '../packages/scripts' });
 }
 
 async function createUserJs(cb) {
